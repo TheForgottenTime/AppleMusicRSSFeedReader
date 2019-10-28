@@ -69,12 +69,10 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
                 //Toast.makeText(mContext, mImageNames.get(position), Toast.LENGTH_SHORT).show();
 
-
-                AppCompatActivity activity = new AppCompatActivity();
-
                 Uri uri = Uri.parse(mLinks.get(position));
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                activity.startActivity(intent);
+                mContext.startActivity(intent);
+
             }
         });
     }
