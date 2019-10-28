@@ -1,3 +1,9 @@
+/*
+* Jack Murphy
+* jackmurphy569@gmail.com
+* 10-28-2019
+* */
+
 package com.example.applemusicrssfeedreader;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -5,32 +11,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.ProgressDialog;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
-import android.widget.ProgressBar;
-import android.widget.Toast;
-
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
-import java.lang.reflect.Array;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
+//This code would need to be fixed in a lot of places to eliminate spaghetti
+
 public class MainActivity extends AppCompatActivity {
 
+    //declare global variables
     ArrayList<String> titles;
     ArrayList<String> artists;
     ArrayList<String> imgLink;
@@ -40,8 +37,10 @@ public class MainActivity extends AppCompatActivity {
     RecyclerViewAdapter adapter;
     boolean updating = false;
 
+    //rss feed url broken up to make adding quantity later
     String RSSFeed1 = "https://rss.itunes.apple.com/api/v1/us/apple-music/top-albums/all/";
     String RSSFeed2 = "/explicit.atom";
+    //preset to start at 10 albums loaded, increments by 10 on scroll
     int loaded = 10;
 
     @Override
@@ -55,12 +54,12 @@ public class MainActivity extends AppCompatActivity {
         ids = new ArrayList<String>();
         combinedText = new ArrayList<String>();
 
+        //load initial set of albums
         new ProcessInBackground().execute();
-
-
-
     }
 
+    //initializes recycler and onScrollListener
+    //listener will load more albums in background when scroll has hit bottom of the page
     private void initRecyclerView(){
         RecyclerView recyclerView = findViewById(R.id.RVDisplayAlbum);
         adapter = new RecyclerViewAdapter(combinedText, imgLink, ids, this);
@@ -84,6 +83,8 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    //combines the album title and the artist name to make loading into the recycler view easier.
+    //adds rank as well
     private void initCombineText(){
         for(int i = 0; i < titles.size(); i++){
             combinedText.add((i + 1) + ": " + titles.get(i) + " - " + artists.get(i));
@@ -101,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //loader for initial set of albums
     public class ProcessInBackground extends AsyncTask<Integer, Void, Exception>{
         ProgressDialog progressDialog = new ProgressDialog(MainActivity.this);
 
@@ -109,13 +111,16 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute(){
             super.onPreExecute();
-
+            //set loading message
             progressDialog.setMessage("Loading Feed...");
             progressDialog.show();
         }
 
         @Override
         protected Exception doInBackground(Integer... params){
+
+            //clear arraylists of data
+            //not needed anymore, but things break without them for some reason
             titles.clear();
             ids.clear();
             combinedText.clear();
@@ -123,16 +128,16 @@ public class MainActivity extends AppCompatActivity {
             imgLink.clear();
 
             try{
+                //assemble url from halves
                 URL url = new URL(RSSFeed1 + loaded + RSSFeed2);
 
+                //init xmlPullParser with url input stream
                 XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-
                 factory.setNamespaceAware(false);
-
                 XmlPullParser xpp = factory.newPullParser();
-
                 xpp.setInput(getInputStream(url), "UTF-8");
 
+                //used to check if xpp is currently inside a entry
                 boolean insideEntry = false;
 
                 int eventType = xpp.getEventType();
@@ -141,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
 
                     if(eventType == XmlPullParser.START_TAG){
                         if(xpp.getName().equalsIgnoreCase("entry")){
+                            //indicates that xpp is now inside entry
                             insideEntry = true;
                         }
                         else if(xpp.getName().equalsIgnoreCase("im:name")){
@@ -153,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
                                 artists.add(xpp.nextText());
                             }
                         }
+                        //corresponds to apple music url to album
                         else if(xpp.getName().equalsIgnoreCase("id")){
                             if(insideEntry){
                                 ids.add(xpp.nextText());
@@ -165,9 +172,11 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     else if(eventType == XmlPullParser.END_TAG && xpp.getName().equalsIgnoreCase("entry")){
+                        //reset entry boolean
                         insideEntry = false;
                     }
 
+                    //increment xpp through xml output
                     eventType = xpp.next();
                 }
             }
@@ -188,6 +197,8 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(Exception s){
             super.onPostExecute(s);
 
+            //run post processing on artist and album names
+            //display array in recycler
             initCombineText();
             initRecyclerView();
 
@@ -195,12 +206,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //just like the name says, used to add more entries to the list of current albums.
+    //basically a stripped down version of the class ProcessInBackground
     public class UpdateInBackground extends AsyncTask<Integer, Void, Exception>{
 
         Exception exception = null;
 
         @Override
         protected Exception doInBackground(Integer... integers) {
+            //clear data from arraylists, needed due to apple not providing a way to only get new album entries.
             titles.clear();
             ids.clear();
             combinedText.clear();
@@ -208,16 +222,16 @@ public class MainActivity extends AppCompatActivity {
             imgLink.clear();
 
             try{
+                //assemble url
                 URL url = new URL(RSSFeed1 + loaded + RSSFeed2);
 
+                //build XmlPullParser with url input stream
                 XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-
                 factory.setNamespaceAware(false);
-
                 XmlPullParser xpp = factory.newPullParser();
-
                 xpp.setInput(getInputStream(url), "UTF-8");
 
+                //used to check if xpp is currently inside a entry
                 boolean insideEntry = false;
 
                 int eventType = xpp.getEventType();
@@ -226,6 +240,7 @@ public class MainActivity extends AppCompatActivity {
 
                     if(eventType == XmlPullParser.START_TAG){
                         if(xpp.getName().equalsIgnoreCase("entry")){
+                            //indicates that xpp is now inside entry
                             insideEntry = true;
                         }
                         else if(xpp.getName().equalsIgnoreCase("im:name")){
@@ -238,6 +253,7 @@ public class MainActivity extends AppCompatActivity {
                                 artists.add(xpp.nextText());
                             }
                         }
+                        //corresponds to apple music url to album
                         else if(xpp.getName().equalsIgnoreCase("id")){
                             if(insideEntry){
                                 ids.add(xpp.nextText());
@@ -250,9 +266,11 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     else if(eventType == XmlPullParser.END_TAG && xpp.getName().equalsIgnoreCase("entry")){
+                        //reset entry boolean
                         insideEntry = false;
                     }
 
+                    //increment xpp through xml output
                     eventType = xpp.next();
                 }
             }
@@ -273,11 +291,19 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(Exception s){
             super.onPostExecute(s);
 
+            //assemble album and artist names into single strings
             initCombineText();
 
+            //caused issues with loosing scroll position more than notifyItemRangeInserted
+            //also caused crashing, probably due to large reads and writes to memory, but I don't know for sure
             //adapter.notifyDataSetChanged();
+
+            //alert recycler of added 10 items
+            //still has issues, but they are uncommon enough to not be a major issue
+            //the number of items added per updated was increased to 10 due to needing less updates, resulting in a lower crash and scroll position issue frequency
             adapter.notifyItemRangeInserted(imgLink.size() - 11, 10);
 
+            //reset update indicator
             updating = false;
         }
     }

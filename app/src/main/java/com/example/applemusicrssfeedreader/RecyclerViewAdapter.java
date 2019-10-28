@@ -1,6 +1,11 @@
+/*
+ * Jack Murphy
+ * jackmurphy569@gmail.com
+ * 10-28-2019
+ * */
+
 package com.example.applemusicrssfeedreader;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -10,18 +15,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+
+//Most of this stuff came from stackoverflow and was just modified to fit the rest of the code
+//Would probably be for the best to redo some of this to help eliminate spaghetti
 
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapter.ViewHolder>{
 
@@ -62,13 +67,13 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
         holder.displayText.setText(mImageNames.get(position));
 
+        //handles apple music redirect for more info when clicked
         holder.parentLayout.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view){
                 Log.d(tag,"onClick: clicked on: " + mImageNames.get(position));
 
-                //Toast.makeText(mContext, mImageNames.get(position), Toast.LENGTH_SHORT).show();
-
+                //open internet browser to url specified by album
                 Uri uri = Uri.parse(mLinks.get(position));
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 mContext.startActivity(intent);
